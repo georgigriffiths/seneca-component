@@ -1,0 +1,2 @@
+# seneca-component
+seneca-component
