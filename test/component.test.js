@@ -5,7 +5,12 @@ const Code = require('code')
 const lab = (exports.lab = Lab.script())
 const expect = Code.expect
 
+const PluginValidator = require('seneca-plugin-validator')
 const Seneca = require('seneca')
+const Plugin = require('..')
+
+
+lab.test('validate', PluginValidator(Plugin, module))
 
 lab.test('happy', fin => {
   Seneca()
