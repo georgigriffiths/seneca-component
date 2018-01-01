@@ -69,25 +69,102 @@ lab.test('simple-act', fin => {
     .ready(function() {
       var x = 0
       
-      var c0 = this.component()
+      var c0 = this.component('c0')
       c0.add('a:1', function a1(msg, reply) {
         reply({x:++x})
       })
       
-      var c1 = this.component()
+      var c1 = this.component('c1')
 
-      console.log('c0', c0.component$, 'c1', c1.component$)
+      // console.log('c0', c0.component$, 'c1', c1.component$)
+
+      var c0_id = c0.component$.id
+      var c1_id = c1.component$.id
+      var map = this.export('component').map
       
       c1.act('a:1', function(ignore, out) {
-        console.log(out)
-        console.dir(this.export('component').map, {depth: null, colors: true})
+        expect(1).equal(out.x)
+        expect(map[c0_id].s['a:1'][c1_id].c).equal(1)
+        expect(map[c1_id].r['a:1'][c0_id].c).equal(1)
 
+        expect(map[c0_id].s['a:1'][c1_id].t).equal('c1')
+        expect(map[c1_id].r['a:1'][c0_id].t).equal('c0')
+
+        expect(map[c0_id].s['a:1'][c1_id].t).equal('s')
+        expect(map[c1_id].r['a:1'][c0_id].t).equal('s')
+        
         c1.act('a:1', function(ignore, out) {
-          console.log(out)
-          console.dir(this.export('component').map, {depth: null, colors: true})
+          expect(2).equal(out.x)
+          expect(map[c0_id].s['a:1'][c1_id].c).equal(2)
+          expect(map[c1_id].r['a:1'][c0_id].c).equal(2)
+
+          expect(map[c0_id].s['a:1'][c1_id].t).equal('c1')
+          expect(map[c1_id].r['a:1'][c0_id].t).equal('c0')
           
+          // console.dir(map, {color:true,depth:null})
+
           fin()
         })
       })
     })
+})
+
+
+lab.test('simple-sub', fin => {
+  Seneca()
+    .test(fin)
+    .use('..')
+    .ready(function() {
+      var tmp = {c1:0,c2:0}
+      
+      var c0 = this.component('c0')
+      c0.add('a:1')
+      
+      var c1 = this.component('c1')
+      var c2 = this.component('c2')
+
+
+      var c0_id = c0.component$.id
+      var c1_id = c1.component$.id
+      var c2_id = c2.component$.id
+      var map = this.export('component').map
+
+      c1.sub('a:1', function c1sub() {
+        tmp.c1++
+      })
+
+      
+      c0
+        .act('a:1')
+        .ready(function () {
+          expect(1).equal(tmp.c1)
+          expect(map[c0_id].s['a:1'][c1_id].c).equal(1)
+          expect(map[c1_id].r['a:1'][c0_id].c).equal(1)
+          expect(map[c0_id].s['a:1'][c1_id].t).equal('c1')
+          expect(map[c1_id].r['a:1'][c0_id].t).equal('c0')
+          expect(map[c0_id].s['a:1'][c1_id].s).equal('a')
+          expect(map[c1_id].r['a:1'][c0_id].s).equal('a')
+
+          c2.sub('a:1', function c2sub() {
+            tmp.c2++
+          })
+
+          c0
+            .act('a:1')
+            .ready(function () {
+              //console.dir(map, {color:true,depth:null})
+
+              expect(map[c0_id].s['a:1'][c1_id].c).equal(2)
+              expect(map[c1_id].r['a:1'][c0_id].c).equal(2)
+
+              expect(map[c0_id].s['a:1'][c2_id].c).equal(1)
+              expect(map[c2_id].r['a:1'][c0_id].c).equal(1)
+              
+              expect(2).equal(tmp.c1)
+              expect(1).equal(tmp.c2)
+              
+              fin()
+            })
+        })
+    })    
 })

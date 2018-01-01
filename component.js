@@ -2,15 +2,18 @@
 'use strict'
 
 
+// NEXT: pretty print flows
+
 module.exports = function component() {
   var seneca = this
 
   var map = {}
   
-  this.decorate('component', function component() {
+  this.decorate('component', function component(ctag) {
     var cmp = this.delegate()
     cmp.component$ = {
       id: cmp.did,
+      ctag: ctag || cmp.did
     }
     return cmp
   })
@@ -26,26 +29,71 @@ module.exports = function component() {
     var m = data.meta
     var cmp = ctxt.seneca.component$ || {}
     var actcmp = ctxt.actdef.component
+
+    if(!m.sync) return
     
     var msgspec = [
       'M',
       m.pattern,
       m.id,
+
+      // receiver
       cmp.id || m.instance,
-      m.tag,
+      cmp.ctag,
+
       m.version,
-      m.sync ? 's' : 'a',
+      's',
       m.start,
       m.parents.length,
       m.pattern,
+
+      // sender
       actcmp.id,
-      m.tag,
+      actcmp.ctag,
+      
       m.version,
     ]
 
     // TODO: needs to sample
     update(map, msgspec)
   })
+
+
+  // TODO: Seneca should provide an API for this
+  if(this.private$.sub.tracers) {
+    this.private$.sub.tracers.push(
+      function component_sub_tracer(instance, msg, result, meta, actdef) {
+        var m = meta
+        var cmp = instance.component$ || {}
+        var actcmp = actdef ? actdef.component || {} : {} 
+    
+        var msgspec = [
+          'M',
+          m.pattern,
+          m.id,
+
+          // receiver
+          cmp.id || m.instance,
+          cmp.ctag || m.tag,
+          
+          m.version,
+          'a',
+          m.start,
+          m.parents.length,
+          m.pattern,
+
+          // sender
+          actcmp.id || m.instance,
+          actcmp.ctag || m.tag,
+
+          m.version,
+        ]
+
+        // TODO: needs to sample
+        update(map, msgspec)
+      })
+  }
+
 
   
   return {
